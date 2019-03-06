@@ -3,10 +3,12 @@ import logging
 import time
 import re
 from chatterbot import ChatBot
+from chatterbot.trainers import ListTrainer
 from settings import Setting
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+
 class Handler:
     def __init__(self):
         st = Setting()
@@ -15,12 +17,19 @@ class Handler:
         self.client_secret = st.get_client_secret()
         self.bot_id = None
         self.slack_client = None
-        self.chat_bot = ChatBot("Fox Bot",
-                                storage_adapter='chatterbot.storage.SQLStorageAdapter',
-                                logic_adapters=['chatterbot.logic.MathematicalEvaluation',
-                                                'chatterbot.logic.BestMatch',
-                                                'chatterbot.logic.TimeLogicAdapter'],
-                                database_uri='sqlite:///database.sqlite3')
+        self.chat_bot = ChatBot("Fox Bot"
+                                # ,
+                                # storage_adapter='chatterbot.storage.SQLStorageAdapter',
+                                # logic_adapters=['chatterbot.logic.MathematicalEvaluation',
+                                #                 'chatterbot.logic.BestMatch',
+                                #                 'chatterbot.logic.TimeLogicAdapter'],
+                                # database_uri='sqlite:///database.sqlite3'
+                                )
+        self.list_train=['Hello, how are you?',
+                        'I am doing well.',
+                        'That is good to hear.',
+                        'Thank you']
+        self.trainer = ListTrainer(self.chat_bot)
 
     def parse_bot_commands(self, events):
         for e in events:
@@ -35,6 +44,9 @@ class Handler:
         return (matches.group(1), matches.group(2).strip()) if matches else (None, None)
 
     def handle_command(self, command, channel):
+        if command not in self.list_train and command != None:
+            self.list_train.append(command)
+        self.trainer.train(self.list_train)
         default_resp = self.chat_bot.get_response(command or '')
         self.slack_client.api_call('chat.postMessage',
                                    channel=channel,
@@ -56,9 +68,6 @@ class Handler:
                 time.sleep(5)
         else:
             logger.info('Connection failed. Exception traceback printed above.')
-
-
-
 
 if __name__ == '__main__':
     hd = Handler()
