@@ -2,6 +2,7 @@ import slackclient
 import logging
 import time
 import re
+from chatterbot import ChatBot
 from settings import Setting
 
 logger = logging.getLogger(__name__)
@@ -14,6 +15,12 @@ class Handler:
         self.client_secret = st.get_client_secret()
         self.bot_id = None
         self.slack_client = None
+        self.chat_bot = ChatBot("Fox Bot",
+                                storage_adapter='chatterbot.storage.SQLStorageAdapter',
+                                logic_adapters=['chatterbot.logic.MathematicalEvaluation',
+                                                'chatterbot.logic.BestMatch',
+                                                'chatterbot.logic.TimeLogicAdapter'],
+                                database_uri='sqlite:///database.sqlite3')
 
     def parse_bot_commands(self, events):
         for e in events:
@@ -28,7 +35,7 @@ class Handler:
         return (matches.group(1), matches.group(2).strip()) if matches else (None, None)
 
     def handle_command(self, command, channel):
-        default_resp = 'Hi there! Im a fox.'
+        default_resp = self.chat_bot.get_response(command or '')
         self.slack_client.api_call('chat.postMessage',
                                    channel=channel,
                                    text=default_resp)
