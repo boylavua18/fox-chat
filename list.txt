@@ -1,0 +1,6 @@
+slack
+facebook
+skype
+telegram
+viber
+line
